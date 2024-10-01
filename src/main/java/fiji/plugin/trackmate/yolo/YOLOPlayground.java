@@ -36,6 +36,8 @@ public class YOLOPlayground
 	private final boolean run( final String path )
 	{
 		final YOLOCLI cli = new YOLOCLI();
+		cli.getCommandArg().set( "yolo" );
+
 		final ImagePlus imp = IJ.openImage( path );
 
 		Path imgTmpFolder;
@@ -56,7 +58,6 @@ public class YOLOPlayground
 
 			// Tmp output folder.
 			outputTmpFolder = imgTmpFolder.resolve( OUTPUT_FOLDER_NAME );
-			CLIUtils.recursiveDeleteOnShutdownHook( outputTmpFolder );
 		}
 		catch ( final IOException e )
 		{
