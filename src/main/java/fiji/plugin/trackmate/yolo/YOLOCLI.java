@@ -21,16 +21,15 @@
  */
 package fiji.plugin.trackmate.yolo;
 
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.DEFAULT_YOLO_MODEL_FILEPATH;
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_YOLO_MODEL_FILEPATH;
+
 import fiji.plugin.trackmate.util.cli.CliGuiBuilder;
 import fiji.plugin.trackmate.util.cli.CliGuiBuilder.CliConfigPanel;
 import fiji.plugin.trackmate.util.cli.CondaExecutableCLIConfigurator;
 
 public class YOLOCLI extends CondaExecutableCLIConfigurator
 {
-
-	public static final String KEY_YOLO_CUSTOM_MODEL_PATH = "CUSTOM_MODEL_PATH";
-
-	public static final String DEFAULT_YOLO_CUSTOM_MODEL_PATH = System.getProperty( "user.home" );
 
 	private final PathArgument modelPath;
 
@@ -44,8 +43,8 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.name( "Path to a YOLO model" )
 				.argument( "model=" )
 				.help( "The path to a YOLO model." )
-				.defaultValue( DEFAULT_YOLO_CUSTOM_MODEL_PATH )
-				.key( KEY_YOLO_CUSTOM_MODEL_PATH )
+				.defaultValue( DEFAULT_YOLO_MODEL_FILEPATH )
+				.key( KEY_YOLO_MODEL_FILEPATH )
 				.get();
 
 		this.imageFolder = addPathArgument()
@@ -54,6 +53,7 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.argument( "source=" )
 				.visible( false )
 				.required( true )
+				.key( null )
 				.get();
 
 		this.outputFolder = addPathArgument()
@@ -62,6 +62,7 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.argument( "project=" )
 				.visible( false )
 				.required( true )
+				.key( null )
 				.get();
 
 		addFlag()
@@ -71,6 +72,7 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.defaultValue( true )
 				.required( true )
 				.visible( false )
+				.key( null )
 				.get();
 
 		addFlag()
@@ -80,6 +82,7 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.defaultValue( true )
 				.required( true )
 				.visible( false )
+				.key( null )
 				.get();
 
 		addFlag()
@@ -89,6 +92,7 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.defaultValue( false ) // We don't want that.
 				.required( true )
 				.visible( false )
+				.key( null )
 				.get();
 	}
 
