@@ -217,7 +217,7 @@ public class YOLOUtils
 
 		private int nDone;
 
-		private final static Pattern IMAGE_NUMBER_PATTERN = Pattern.compile( "image (\\d+)/(\\d+)" );
+		private final static Pattern IMAGE_NUMBER_PATTERN = Pattern.compile( "^image \\d+/\\d+.*" );
 
 		public YOLOTailerListener( final Logger logger, final int nTodos )
 		{
@@ -230,6 +230,7 @@ public class YOLOUtils
 		public void handle( final String line )
 		{
 			final Matcher matcher = IMAGE_NUMBER_PATTERN.matcher( line );
+
 			if ( matcher.matches() )
 			{
 				// Simply increment the 'done' counter.
@@ -238,7 +239,8 @@ public class YOLOUtils
 			}
 			else
 			{
-				logger.log( " - " + line + '\n' );
+				if ( !line.trim().isEmpty() )
+					logger.log( " - " + line + '\n' );
 			}
 		}
 	}
