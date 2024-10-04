@@ -21,6 +21,7 @@
  */
 package fiji.plugin.trackmate.yolo;
 
+import static fiji.plugin.trackmate.io.IOUtils.readDoubleAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.readStringAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.writeAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.writeTargetChannel;
@@ -72,6 +73,22 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 	public static final String DEFAULT_YOLO_MODEL_FILEPATH = "";
 
 	/**
+	 * Key for the parameters that sets the minimum confidence threshold for
+	 * detections.
+	 */
+	public static final String KEY_YOLO_CONF = "YOLO_CONF_THRESHOLD";
+
+	public static final double DEFAULT_YOLO_CONF = 0.25;
+
+	/**
+	 * Key for the parameters that sets the IoU threshold for Non-Maximum
+	 * Suppression.
+	 */
+	public static final String KEY_YOLO_IOU = "YOLO_IOU_THRESHOLD";
+
+	public static final double DEFAULT_YOLO_IOU = 0.7;
+
+	/**
 	 * The key to the parameter that stores the logger instance, to which
 	 * Cellpose messages wil be sent. Values must be implementing
 	 * {@link Logger}. This parameter won't be serialized.
@@ -98,11 +115,12 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 			+ "This detector relies on YOLO to detect objects."
 			+ "<p>"
 			+ "The detector simply calls an external YOLO installation. So for this "
-			+ "to work, you must have a TOLO installation running on your computer. "
+			+ "to work, you must have a YOLO installation running on your computer. "
 			+ "<p>"
 			+ "If you use this detector for your work, please be so kind as to "
-			+ "also cite the YOLO github repo: <a href=\"https://github.com/ultralytics/ultralytics\">Jocher, G., Qiu, J., & Chaurasia, A. (2023). "
-			+ "Ultralytics YOLO (Version 8.0.0). https://github.com/ultralytics/ultralytics</a>"
+			+ "also cite the YOLO github repo: <a href=\"https://github.com/ultralytics/ultralytics\">"
+			+ "Jocher, G., Qiu, J., & Chaurasia, A. (2023). "
+			+ "Ultralytics YOLO. https://github.com/ultralytics/ultralytics</a>"
 			+ "<p>"
 			+ "Documentation for this module "
 			+ "<a href=\"" + DOC_YOLO_URL + "\">on the ImageJ Wiki</a>."
@@ -143,10 +161,6 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 	@Override
 	public boolean forbidMultithreading()
 	{
-		/*
-		 * We want to run one frame after another, because the inference for one
-		 * frame takes all the resources anyway.
-		 */
 		return true;
 	}
 
@@ -171,6 +185,8 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 		boolean ok = writeTargetChannel( settings, element, errorHolder );
 		ok = ok & writeAttribute( settings, element, KEY_CONDA_ENV, String.class, errorHolder );
 		ok = ok & writeAttribute( settings, element, KEY_YOLO_MODEL_FILEPATH, String.class, errorHolder );
+		ok = ok & writeAttribute( settings, element, KEY_YOLO_CONF, Double.class, errorHolder );
+		ok = ok & writeAttribute( settings, element, KEY_YOLO_IOU, Double.class, errorHolder );
 
 		if ( !ok )
 			errorMessage = errorHolder.toString();
@@ -186,6 +202,8 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 		boolean ok = true;
 		ok = ok & readStringAttribute( element, settings, KEY_CONDA_ENV, errorHolder );
 		ok = ok & readStringAttribute( element, settings, KEY_YOLO_MODEL_FILEPATH, errorHolder );
+		ok = ok & readDoubleAttribute( element, settings, KEY_YOLO_CONF, errorHolder );
+		ok = ok & readDoubleAttribute( element, settings, KEY_YOLO_IOU, errorHolder );
 
 		return checkSettings( settings );
 	}
@@ -202,6 +220,8 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 		final Map< String, Object > settings = new HashMap<>();
 		settings.put( KEY_CONDA_ENV, "" );
 		settings.put( KEY_YOLO_MODEL_FILEPATH, DEFAULT_YOLO_MODEL_FILEPATH );
+		settings.put( KEY_YOLO_CONF, DEFAULT_YOLO_CONF );
+		settings.put( KEY_YOLO_IOU, DEFAULT_YOLO_IOU );
 		settings.put( KEY_LOGGER, Logger.DEFAULT_LOGGER );
 		return settings;
 	}
@@ -213,6 +233,8 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 		final StringBuilder errorHolder = new StringBuilder();
 		ok = ok & checkParameter( settings, KEY_CONDA_ENV, String.class, errorHolder );
 		ok = ok & checkParameter( settings, KEY_YOLO_MODEL_FILEPATH, String.class, errorHolder );
+		ok = ok & checkParameter( settings, KEY_YOLO_CONF, Double.class, errorHolder );
+		ok = ok & checkParameter( settings, KEY_YOLO_IOU, Double.class, errorHolder );
 
 		// If we have a logger, test it is of the right class.
 		final Object loggerObj = settings.get( KEY_LOGGER );
@@ -223,7 +245,7 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 			ok = false;
 		}
 
-		final List< String > mandatoryKeys = Arrays.asList( KEY_CONDA_ENV, KEY_YOLO_MODEL_FILEPATH );
+		final List< String > mandatoryKeys = Arrays.asList( KEY_CONDA_ENV, KEY_YOLO_MODEL_FILEPATH, KEY_YOLO_CONF, KEY_YOLO_IOU );
 		final List< String > optionalKeys = Arrays.asList( KEY_LOGGER );
 
 		ok = ok & checkMapKeys( settings, mandatoryKeys, optionalKeys, errorHolder );

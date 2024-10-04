@@ -21,7 +21,11 @@
  */
 package fiji.plugin.trackmate.yolo;
 
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.DEFAULT_YOLO_CONF;
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.DEFAULT_YOLO_IOU;
 import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.DEFAULT_YOLO_MODEL_FILEPATH;
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_YOLO_CONF;
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_YOLO_IOU;
 import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_YOLO_MODEL_FILEPATH;
 
 import fiji.plugin.trackmate.util.cli.CliGuiBuilder;
@@ -37,6 +41,10 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 
 	private final PathArgument outputFolder;
 
+	private final DoubleArgument iou;
+
+	private final DoubleArgument conf;
+
 	public YOLOCLI()
 	{
 		this.modelPath = addPathArgument()
@@ -45,6 +53,30 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 				.help( "The path to a YOLO model." )
 				.defaultValue( DEFAULT_YOLO_MODEL_FILEPATH )
 				.key( KEY_YOLO_MODEL_FILEPATH )
+				.get();
+
+		this.conf = addDoubleArgument()
+				.name( "Confidence threshold" )
+				.argument( "conf=" )
+				.defaultValue( DEFAULT_YOLO_CONF )
+				.min( 0. )
+				.max( 1. )
+				.help( "Sets the minimum confidence threshold for detections. Objects detected "
+						+ "with confidence below this threshold will be disregarded. Adjusting "
+						+ "this value can help reduce false positives." )
+				.key( KEY_YOLO_CONF )
+				.get();
+
+		this.iou = addDoubleArgument()
+				.name( "IoU threshold" )
+				.argument( "iou=" )
+				.defaultValue( DEFAULT_YOLO_IOU )
+				.min( 0. )
+				.max( 1. )
+				.help( "Intersection Over Union (IoU) threshold for Non-Maximum Suppression (NMS). "
+						+ "Lower values result in fewer detections by eliminating overlapping boxes, "
+						+ "useful for reducing duplicates." )
+				.key( KEY_YOLO_IOU )
 				.get();
 
 		this.imageFolder = addPathArgument()
@@ -115,6 +147,16 @@ public class YOLOCLI extends CondaExecutableCLIConfigurator
 	public PathArgument outputFolder()
 	{
 		return outputFolder;
+	}
+
+	public DoubleArgument iouThreshold()
+	{
+		return iou;
+	}
+
+	public DoubleArgument confidenceThreshold()
+	{
+		return conf;
 	}
 
 	public static CliConfigPanel build( final YOLOCLI cli )
