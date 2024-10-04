@@ -23,9 +23,10 @@ package fiji.plugin.trackmate.yolo;
 
 import static fiji.plugin.trackmate.gui.Fonts.BIG_FONT;
 import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_LOGGER;
+import static fiji.plugin.trackmate.yolo.YOLODetectorFactory.KEY_YOLO_CONF;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,8 +70,10 @@ public class YOLODetectorConfigurationPanel extends ConfigurationPanel
 		this.cli = new YOLOCLI();
 		this.logger = model.getLogger();
 
-		final BorderLayout borderLayout = new BorderLayout();
-		setLayout( borderLayout );
+		final GridBagLayout gridBagLayout = new GridBagLayout();
+		setLayout( gridBagLayout );
+		gridBagLayout.columnWidths = new int[] { 180 };
+		gridBagLayout.columnWeights = new double[] { 1. };
 
 		/*
 		 * HEADER
@@ -88,7 +91,11 @@ public class YOLODetectorConfigurationPanel extends ConfigurationPanel
 		header.add( Box.createVerticalStrut( 5 ) );
 		header.add( GuiUtils.infoDisplay( "<html>" + YOLODetectorFactory.INFO_TEXT + "</html>", false ) );
 
-		add( header, BorderLayout.NORTH );
+		final GridBagConstraints gc = new GridBagConstraints();
+		gc.gridx = 0;
+		gc.gridy = 0;
+		gc.fill = GridBagConstraints.BOTH;
+		add( header, gc );
 
 		/*
 		 * CONFIG
@@ -96,9 +103,13 @@ public class YOLODetectorConfigurationPanel extends ConfigurationPanel
 
 		this.mainPanel = YOLOCLI.build( cli );
 		final JScrollPane scrollPane = new JScrollPane( mainPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
-		scrollPane.setBorder( null );
+//		scrollPane.setBorder( null );
 		scrollPane.getVerticalScrollBar().setUnitIncrement( 16 );
-		add( scrollPane, BorderLayout.CENTER );
+
+		gc.gridy++;
+		gc.weighty = 1.;
+		gc.weightx = 0.;
+		add( scrollPane, gc );
 
 		/*
 		 * PREVIEW
@@ -109,15 +120,18 @@ public class YOLODetectorConfigurationPanel extends ConfigurationPanel
 				.settings( settings )
 				.detectorFactory( getDetectorFactory() )
 				.detectionSettingsSupplier( () -> getSettings() )
+				.thresholdKey( KEY_YOLO_CONF )
+				.thresholdUpdater( t -> {
+					cli.confidenceThreshold().set( t );
+					mainPanel.refresh();
+				} )
+				.axisLabel( "confidence" )
 				.get();
-		final JPanel previewPanel = new JPanel( new BorderLayout() );
-		previewPanel.setBorder( BorderFactory.createLineBorder( Color.RED ) );
-
 		final DetectionPreviewPanel p = detectionPreview.getPanel();
-		p.setBorder( BorderFactory.createLineBorder( Color.BLUE ) );
-		previewPanel.add( p, BorderLayout.CENTER );
 
-		add( previewPanel, BorderLayout.SOUTH );
+		gc.gridy++;
+		gc.weighty = 0.;
+		add( p, gc );
 	}
 
 	protected SpotDetectorFactoryBase< ? > getDetectorFactory()
