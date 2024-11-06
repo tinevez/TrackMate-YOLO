@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -136,7 +137,11 @@ public class YOLODetector< T extends RealType< T > & NativeType< T > > implement
 		// Redirect log to logger.
 		final int nFrames = ( int ) img.dimension( img.dimensionIndex( Axes.TIME ) );
 		final File logFile = imgTmpFolder.resolve( YOLO_LOG_FILENAME ).toFile();
-		final Tailer tailer = Tailer.create( logFile, new YOLOTailerListener( logger, nFrames ), 200, true );
+		final Tailer tailer = Tailer.builder()
+				.setFile( logFile )
+				.setTailerListener( new YOLOTailerListener( logger, nFrames ) )
+				.setDelayDuration( Duration.ofMillis( 200 ) )
+				.get();
 		Process process;
 		try
 		{
@@ -249,7 +254,7 @@ public class YOLODetector< T extends RealType< T > & NativeType< T > > implement
 		}
 		finally
 		{
-			tailer.stop();
+			tailer.close();
 			process = null;
 		}
 
