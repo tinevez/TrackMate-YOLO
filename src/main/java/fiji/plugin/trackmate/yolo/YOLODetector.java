@@ -21,8 +21,6 @@ import fiji.plugin.trackmate.util.TMUtils;
 import fiji.plugin.trackmate.util.cli.CLIUtils;
 import fiji.plugin.trackmate.util.cli.CommandBuilder;
 import fiji.plugin.trackmate.yolo.YOLOUtils.YOLOTailerListener;
-import ij.IJ;
-import ij.ImagePlus;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
 import net.imglib2.Interval;
@@ -96,17 +94,12 @@ public class YOLODetector< T extends RealType< T > & NativeType< T > > implement
 			logger.setStatus( "Resaving source image" );
 			logger.log( "Saving source image to " + imgTmpFolder + "\n" );
 
-			final List< ImagePlus > timePoints = YOLOUtils.splitSingleTimePoints( img, interval, YOLOUtils.nameGen );
-			for ( final ImagePlus tp : timePoints )
+			final boolean ok = YOLOUtils.resaveSingleTimePoints( img, interval, imgTmpFolder.toString(), logger );
+			if ( !ok )
 			{
-				final String path = imgTmpFolder.resolve( tp.getTitle() ).toString();
-				final boolean ok = IJ.saveAsTiff( tp, path );
-				if ( !ok )
-				{
-					errorMessage = BASE_ERROR_MESSAGE + "Problem saving image frames to " + path + "\n";
-					processingTime = System.currentTimeMillis() - startTime;
-					return false;
-				}
+				errorMessage = BASE_ERROR_MESSAGE + "Problem saving image frames to " + imgTmpFolder + "\n";
+				processingTime = System.currentTimeMillis() - startTime;
+				return false;
 			}
 
 			// Tmp output folder.
@@ -135,11 +128,24 @@ public class YOLODetector< T extends RealType< T > & NativeType< T > > implement
 		final String executableName = cli.getCommand();
 
 		// Redirect log to logger.
-		final int nFrames = ( int ) img.dimension( img.dimensionIndex( Axes.TIME ) );
+		final int timeIndex = img.dimensionIndex( Axes.TIME );
+		final int nFrames;
+		if ( timeIndex < 0 )
+		{
+			nFrames = 1;
+		}
+		else
+		{
+			// In the interval, time is always the last.
+			final long minT = interval.min( interval.numDimensions() - 1 );
+			final long maxT = interval.max( interval.numDimensions() - 1 );
+			nFrames = ( int ) ( maxT - minT + 1 );
+		}
+		final YOLOTailerListener tailerListener = new YOLOTailerListener( logger, nFrames );
 		final File logFile = imgTmpFolder.resolve( YOLO_LOG_FILENAME ).toFile();
 		final Tailer tailer = Tailer.builder()
 				.setFile( logFile )
-				.setTailerListener( new YOLOTailerListener( logger, nFrames ) )
+				.setTailerListener( tailerListener )
 				.setDelayDuration( Duration.ofMillis( 200 ) )
 				.get();
 		Process process;

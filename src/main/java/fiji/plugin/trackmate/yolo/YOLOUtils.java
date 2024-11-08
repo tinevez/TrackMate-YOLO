@@ -19,7 +19,6 @@ import fiji.plugin.trackmate.util.TMUtils;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.plugin.Duplicator;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
 import net.imglib2.Interval;
@@ -38,7 +37,7 @@ public class YOLOUtils
 	/**
 	 * Properly wraps an {@link ImgPlus} in a {@link ImagePlus}, ensuring that
 	 * the dimensionality and the calibration of the output matches the input.
-	 * 
+	 *
 	 * @param title
 	 */
 	public static < T extends RealType< T > & NativeType< T > > ImagePlus wrap( final ImgPlus< T > img )
@@ -58,89 +57,30 @@ public class YOLOUtils
 	}
 
 	/**
-	 * Saves the specified {@link ImagePlus} so that it can be processed by an
-	 * external process.
-	 * 
-	 * @param imp
-	 *            the image to save.
-	 * @param c
-	 *            the channel to extract before saving. If negative, all
-	 *            channels will be saved.
-	 * @param folder
-	 *            the folder in which to save
-	 * @param suffix
-	 * @param logger
-	 * @return
-	 */
-	public static < T extends RealType< T > & NativeType< T > > boolean resaveSingleTimePoints( final ImgPlus< T > img, final int c, final String folder, final String suffix, final Logger logger )
-	{
-		final ImagePlus imp = wrap( img );
-		return resaveSingleTimePoints( imp, c, folder, suffix, logger );
-	}
-
-	/**
-	 * Saves the specified {@link ImagePlus} so that it can be processed by an
-	 * external process.
-	 * 
-	 * @param imp
-	 *            the image to save.
-	 * @param c
-	 *            the channel to extract before saving. If negative, all
-	 *            channels will be saved.
-	 * @param folder
-	 *            the folder in which to save
-	 * @param suffix
-	 * @param logger
-	 * @return
-	 */
-	public static boolean resaveSingleTimePoints( final ImagePlus imp, final int c, final String folder, final String suffix, final Logger logger )
-	{
-		final int nT = imp.getNFrames();
-		final int nZ = imp.getNSlices();
-		final int firstC = c < 0 ? 1 : c;
-		final int lastC = c < 0 ? imp.getNChannels() : c;
-
-		for ( int t = 1; t <= nT; t++ )
-		{
-			final String name = String.format( imp.getShortTitle() + suffix + "%04d", t );
-			final ImagePlus dup = new Duplicator().run( imp, firstC, lastC, 1, nZ, t, t );
-			dup.setTitle( name );
-			final String path = folder + File.separator + name + ".tif";
-			final boolean ok = IJ.saveAsTiff( dup, path );
-			if ( !ok )
-			{
-				logger.error( "Problem saving to " + path + '\n' );
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public static final Function< Long, String > nameGen = ( frame ) -> String.format( "%d", frame );
-
-	/**
-	 * Splits the input image in a list of {@link ImagePlus}, one per
-	 * time-point. If the input includes several channels, they are all included
-	 * in the new image, and put as the last dimension.
-	 * 
-	 * @param <T>
-	 *            the type of the pixel in the input image.
+	 * Resaves the specified image, one file per time-point, so that it can be
+	 * processed by an external process.
+	 * <p>
+	 * Single imte-points will be resaved as ImageJ TIFFs, in the specified
+	 * folder, with a name ending with the time-point value (0-based). Examples:
+	 * "0.tif", "20.tif".
+	 *
 	 * @param img
-	 *            the input image.
+	 *            the image to save.
 	 * @param interval
-	 *            the interval to crop the output in the input image. Must not
-	 *            have a dimension for channels. Can be 2D or 3D to accommodate
-	 *            the input image. If the interval contains time (min T and max
-	 *            T to export), it must be in the last dimension of the
-	 *            interval.
-	 * @param nameGen
-	 *            a generator for the name of the output ImagePlus.
-	 * @return a new list of ImagePlus.
+	 *            the interval that specifies how to crop the image before
+	 *            saving. Can include time, X, Y, channels etc. Dimensions and
+	 *            dimensions order must much that of the image.
+	 * @param folder
+	 *            the folder in which to save
+	 * @param logger
+	 *            a logger to report progress.
+	 * @return <code>true</code> if resaving happened without issues.
 	 */
-	public static final < T extends RealType< T > & NativeType< T > > List< ImagePlus > splitSingleTimePoints(
+	public static < T extends RealType< T > & NativeType< T > > boolean resaveSingleTimePoints(
 			final ImgPlus< T > img,
 			final Interval interval,
-			final Function< Long, String > nameGen )
+			final String folder,
+			final Logger logger )
 	{
 		final int zIndex = img.dimensionIndex( Axes.Z );
 		final int cIndex = img.dimensionIndex( Axes.CHANNEL );
@@ -170,14 +110,15 @@ public class YOLOUtils
 						interval.max( 0 ), interval.max( 1 ), interval.max( 2 ), img.max( cIndex ) );
 		}
 
-		final List< ImagePlus > imps = new ArrayList<>();
 		final int timeIndex = img.dimensionIndex( Axes.TIME );
 		if ( timeIndex < 0 )
 		{
-			// No time.
+			// No time, just save the image.
 			final IntervalView< T > crop = Views.interval( img, cropInterval );
-			final String name = nameGen.apply( 0l ) + ".tif";
-			imps.add( ImageJFunctions.wrap( crop, name ) );
+			final String name = nameGen.apply( 0l );
+			final ImagePlus imp = ImageJFunctions.wrap( crop, name );
+			final String path = folder + File.separator + name + ".tif";
+			return IJ.saveAsTiff( imp, path );
 		}
 		else
 		{
@@ -193,17 +134,26 @@ public class YOLOUtils
 				final int chanDim = tpTCZ.dimensionIndex( Axes.CHANNEL );
 				ImgPlus< T > tp = tpTCZ;
 				if ( chanDim > 1 )
-				{
 					tp = ImgPlusViews.moveAxis( tpTCZ, chanDim, tpTCZ.numDimensions() - 1 );
-				}
+
 				// possibly 2D or 3D with or without channel.
 				final IntervalView< T > crop = Views.interval( tp, cropInterval );
-				final String name = nameGen.apply( t ) + ".tif";
-				imps.add( ImageJFunctions.wrap( crop, name ) );
+				final String name = nameGen.apply( t );
+				final String path = folder + File.separator + name + ".tif";
+				final ImagePlus imp = ImageJFunctions.wrap( crop, name );
+				final boolean ok = IJ.saveAsTiff( imp, path );
+				if ( !ok )
+					return false;
+
+				logger.setProgress( ( double ) ( t + 1 - minT ) / ( maxT - minT + 1 ) );
 			}
+			return true;
 		}
-		return imps;
 	}
+
+
+	public static final Function< Long, String > nameGen = ( frame ) -> String.format( "%d", frame );
+
 
 	/**
 	 * A tailer listener that parse YOLO log to fetch when an image has been
