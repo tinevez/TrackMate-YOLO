@@ -8,12 +8,12 @@
  * it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
@@ -21,6 +21,7 @@
  */
 package fiji.plugin.trackmate.yolo;
 
+import static fiji.plugin.trackmate.detection.DetectorKeys.KEY_TARGET_CHANNEL;
 import static fiji.plugin.trackmate.io.IOUtils.readDoubleAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.readStringAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.writeAttribute;
@@ -246,7 +247,7 @@ public class YOLODetectorFactory< T extends RealType< T > & NativeType< T > > im
 		}
 
 		final List< String > mandatoryKeys = Arrays.asList( KEY_CONDA_ENV, KEY_YOLO_MODEL_FILEPATH, KEY_YOLO_CONF, KEY_YOLO_IOU );
-		final List< String > optionalKeys = Arrays.asList( KEY_LOGGER );
+		final List< String > optionalKeys = Arrays.asList( KEY_LOGGER, KEY_TARGET_CHANNEL );
 
 		ok = ok & checkMapKeys( settings, mandatoryKeys, optionalKeys, errorHolder );
 		if ( !ok )
